@@ -8,7 +8,7 @@ from scipy.stats import wilcoxon
 
 
 class DEAL(ClassicOptimizer):
-    def __init__(self, epoch: int = 10000, pop_size: int = 100, c1: float = 2.05, c2: float = 2.05, w: float = 0.4,
+    def __init__(self, epoch: int = 10000, pop_size: int = 100, c1: float = 2.05, c2: float = 2.05,
                  **kwargs: object) -> None:
         """
         Args:
@@ -16,17 +16,16 @@ class DEAL(ClassicOptimizer):
             pop_size: number of population size, default = 100
             c1: [0-2] local coefficient
             c2: [0-2] global coefficient
-            w_min: Weight min of bird, default = 0.4
         """
 
         super().__init__(**kwargs)
 
         self.historial_best_pop = []
+        self.w = 1
         self.epoch = self.validator.check_int("epoch", epoch, [1, 100000])
         self.pop_size = self.validator.check_int("pop_size", pop_size, [5, 10000])
         self.c1 = self.validator.check_float("c1", c1, (0, 5.0))
         self.c2 = self.validator.check_float("c2", c2, (0, 5.0))
-        self.w = self.validator.check_float("w", w, (0, 1.0))
         self.set_parameters(["epoch", "pop_size", "c1", "c2", "w"])
         self.sort_flag = False
         self.is_parallelizable = False
@@ -72,15 +71,17 @@ class DEAL(ClassicOptimizer):
 
         pos_new_solutions = []
 
-        for idx in range(0, self.pop_size):
-            cognitive = self.c1 * self.generator.random(self.problem.n_dims) * (
-                    self.pop[idx].local_solution - self.pop[idx].solution)
+        if len(self.historial_best_pop) > 2:
+            self.w = wilcoxon([p.target.fitness for p in self.historial_best_pop]).pvalue
 
-            social = self.c2 * self.generator.random(self.problem.n_dims) * (
-                    self.g_best.solution - self.pop[idx].solution)
+        for idx in range(0, self.pop_size):
+            cognitive = self.c1 * self.generator.random(self.problem.n_dims) * (self.pop[idx].local_solution - self.pop[idx].solution)
+
+            social = self.c2 * self.generator.random(self.problem.n_dims) * (self.g_best.solution - self.pop[idx].solution)
 
             self.pop[idx].velocity = self.w * self.pop[idx].velocity + cognitive + social
 
+            # pos_new = self.pop[idx].solution + self.pop[idx].velocity
             pos_new = self.pop[idx].solution + self.pop[idx].velocity
 
             pos_new = self.correct_solution(pos_new)
@@ -108,4 +109,3 @@ class DEAL(ClassicOptimizer):
         gbest = self.get_best_agent(self.pop, self.problem.minmax)
         self.historial_best_pop.append(gbest)
         self.gbest = sorted(self.historial_best_pop, key=lambda p: p.target.fitness)[0]
-    
