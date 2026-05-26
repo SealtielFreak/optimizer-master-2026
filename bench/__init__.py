@@ -338,7 +338,7 @@ def _wilcoxon_scoreboard(wilcoxon_per_fn: pd.DataFrame) -> pd.DataFrame:
 class BenchmarkSuite:
     def __init__(
             self,
-            functions: list[FunctionSpec],
+            functions: list[FunctionSpec | ClassFunctionSpec],
             algorithms: list[AlgorithmSpec],
             epoch: int = 100,
             pop_size: int = 50,
