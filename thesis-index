@@ -1,0 +1,126 @@
+TITULO
+Algoritmos metaheurísticos aplicados a problemas de ingeniería.
+
+PRELIMINARES
+Dedicatoria
+Agradecimientos
+Resumen
+Abstract
+Índice general
+Índice de figuras
+Índice de tablas
+Índice de algoritmos
+Índice de fragmentos de código
+Lista de abreviaturas y símbolos
+
+CAPÍTULO I. INTRODUCCIÓN
+1.1 Planteamiento del problema
+    1.1.1 Contexto de la optimización en ingeniería
+    1.1.2 Limitaciones del PSO clásico: estancamiento y convergencia prematura
+    1.1.3 Identificación de la brecha científica
+1.2 Justificación
+    1.2.1 Relevancia académica
+    1.2.2 Relevancia práctica en problemas de ingeniería
+1.3 Pregunta de investigación
+1.4 Objetivos
+    1.4.1 Objetivo general
+    1.4.2 Objetivos específicos
+1.5 Hipótesis
+1.6 Delimitación del estudio
+1.7 Estructura de la tesis
+CAPÍTULO II. MARCO TEÓRICO
+2.1 Optimización global
+    2.1.1 Problemas de optimización en ingeniería: características y taxonomía
+    2.1.2 Funciones de prueba y benchmarks de ingeniería
+    2.1.3 Métricas de desempeño (fitness, convergencia, diversidad)
+2.2 Metaheurísticas basadas en poblaciones
+    2.2.1 Clasificación y principios fundamentales
+    2.2.2 Balance entre exploración y explotación
+2.3 Optimización por Enjambre de Partículas (PSO)
+    2.3.1 Formulación matemática del PSO canónico
+    2.3.2 PSO sin inercia: análisis de estabilidad y dinámica
+    2.3.3 Mecanismos de control de convergencia en PSO
+2.4 Inicialización de poblaciones en metaheurísticas
+    2.4.1 Estrategias de muestreo espacial
+    2.4.2 Inicialización en hipersfera: propiedades de cobertura uniforme
+    2.4.3 Ventajas de la distribución hiperesférica frente a muestreo cúbico
+2.5 Vuelo de Lévy
+    2.5.1 Distribución de Lévy: definición y propiedades estadísticas
+    2.5.2 Simulación computacional del vuelo de Lévy
+    2.5.3 Aplicaciones en metaheurísticas para escapar de óptimos locales
+2.6 Frameworks computacionales para metaheurísticas
+    2.6.1 Ecosistema Python para optimización evolutiva
+    2.6.2 Mealpy: arquitectura de clases y extensibilidad de metaheurísticas
+    2.6.3 Opfunu: repositorio de funciones benchmark CEC y matemáticas
+    2.6.4 Enoppy: problemas de optimización reales de ingeniería
+2.7 Estado del arte
+    2.7.1 Revisión de variantes PSO con mecanismos anti-estancamiento
+    2.7.2 Integración de vuelo de Lévy en enjambres de partículas
+    2.7.3 Estrategias de inicialización no uniforme en optimización evolutiva
+    2.7.4 Brechas identificadas en la literatura reciente
+CAPÍTULO III. DISEÑO E IMPLEMENTACIÓN DE LA METAHEURÍSTICA
+3.1 Fundamentos del algoritmo
+    3.1.1 Definición del modelo PSO sin inercia
+    3.1.2 Análisis de la ecuación de velocidad: componentes cognitivo y social
+3.2 Inicialización hiperesférica de la población
+    3.2.1 Mapeo del espacio de búsqueda a la hipersfera unitaria
+    3.2.2 Algoritmo de generación de partículas en coordenadas hiperesféricas
+    3.2.3 Escalamiento y proyección al dominio del problema
+3.3 Mecanismo de vuelo de Lévy adaptativo
+    3.3.1 Integración del operador Lévy en la dinámica del enjambre
+    3.3.2 Criterio de activación: detección de estancamiento poblacional
+    3.3.3 Estrategia adaptativa para el factor de escala del vuelo de Lévy
+3.4 Pseudocódigo y arquitectura del algoritmo propuesto
+    3.4.1 Descripción formal del procedimiento
+    3.4.2 Diagrama de flujo del algoritmo
+    3.4.3 Complejidad computacional
+3.5 Análisis teórico de convergencia
+    3.5.1 Condiciones de estabilidad del PSO sin inercia
+    3.5.2 Impacto del vuelo de Lévy en la diversidad poblacional
+    3.5.3 Demostración de no estancamiento global
+3.6 Implementación computacional en Python
+    3.6.1 Arquitectura del software y estructura de módulos
+    3.6.2 Extensión del framework Mealpy: herencia de la clase base Optimizer
+    3.6.3 Implementación del operador de inicialización hiperesférica
+    3.6.4 Implementación del operador de vuelo de Lévy y detección de estancamiento
+    3.6.5 Interfaz de configuración paramétrica y replicabilidad experimental
+3.7 Integración con librerías de benchmark
+    3.7.1 Conexión con Opfunu: wrapper de funciones CEC y matemáticas
+    3.7.2 Conexión con Enoppy: wrapper de problemas de ingeniería con restricciones
+    3.7.3 Protocolo de ejecución batch y gestión de resultados
+CAPÍTULO IV. EXPERIMENTACIÓN Y ANÁLISIS DE RESULTADOS
+4.1 Configuración experimental
+    4.1.1 Plataforma computacional, entorno Python y versiones de librerías
+    4.1.2 Parámetros del algoritmo propuesto
+    4.1.3 Estrategia de comparación: algoritmos base y estado del arte (via Mealpy)
+4.2 Pruebas en funciones benchmark con Opfunu
+    4.2.1 Selección de funciones unimodales, multimodales y compuestas CEC
+    4.2.2 Análisis de calidad de solución: media, desviación estándar y ranking
+    4.2.3 Análisis de convergencia: curvas de evolución del fitness
+    4.2.4 Análisis de diversidad: métricas espaciales del enjambre
+    4.2.5 Pruebas estadísticas de significancia (Wilcoxon, Friedman, Holm)
+4.3 Pruebas en problemas de ingeniería con Enoppy
+    4.3.1 Selección de problemas estructurales, mecánicos y de diseño
+    4.3.2 Manejo de restricciones y funciones de penalización
+    4.3.3 Comparativa con métodos clásicos y especializados (PSO, GA, DE desde Mealpy)
+    4.3.4 Análisis de viabilidad de las soluciones obtenidas
+4.4 Análisis de componentes (ablation study)
+    4.4.1 Efecto de la inicialización hiperesférica vs. uniforme
+    4.4.2 Efecto del vuelo de Lévy vs. perturbación gaussiana
+    4.4.3 Efecto de la ausencia de inercia en la dinámica de convergencia
+4.5 Análisis de sensibilidad paramétrica
+    4.5.1 Influencia del tamaño de población
+    4.5.2 Influencia de los coeficientes de aceleración
+    4.5.3 Influencia del exponente de Lévy y el umbral de estancamiento
+4.6 Discusión
+    4.6.1 Interpretación de los resultados en Opfunu y Enoppy
+    4.6.2 Validación de la hipótesis
+    4.6.3 Limitaciones del estudio experimental
+CAPÍTULO V. CONCLUSIONES Y TRABAJO FUTURO
+5.1 Conclusiones generales
+5.2 Conclusiones por objetivo específico
+5.3 Contribuciones del trabajo
+5.4 Trabajo futuro
+    5.4.1 Extensiones algorítmicas
+    5.4.2 Publicación del módulo como contribución open-source a Mealpy
+    5.4.3 Aplicaciones en otros dominios de ingeniería
