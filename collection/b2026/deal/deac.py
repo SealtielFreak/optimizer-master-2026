@@ -6,14 +6,13 @@ from scipy.stats import wilcoxon, cauchy
 from utils import stats_solution
 from utils.mutation import update_history
 
-
 _STATS_MODES = 'mode', 'sorted', 'median', 'mean'
+
 
 class DEAC(ClassicOptimizer):
     """
         Differential Evolution Adaptative Cauchy
     """
-
 
     def __init__(
             self,
