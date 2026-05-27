@@ -1,14 +1,15 @@
 import numpy as np
-
 from mealpy.optimizer.classic import ClassicOptimizer
 from mealpy.utils.agent import Agent
-
 from scipy.stats import wilcoxon, cauchy
 
+from utils import stats_solution
+from utils.mutation import update_history
 
-class DEAL(ClassicOptimizer):
+
+class DEAP(ClassicOptimizer):
     """
-    Differential Evolution Adaptative Lineal
+    Differential Evolution Adaptative Population
     """
 
     STATS_MODES = 'mode', 'sorted', 'median', 'mean'
@@ -167,7 +168,7 @@ class DEAL(ClassicOptimizer):
             r1_idx, r2_idx = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 2, replace=False)
             x_new = (
                 (self.pop[idx].solution + f * (g_best_mode_solution - self.pop[idx].solution) + f * (
-                            self.pop[r1_idx].solution - self.pop[r2_idx].solution))
+                        self.pop[r1_idx].solution - self.pop[r2_idx].solution))
             )
 
             pos_new = self.mutation(self.pop[idx].solution, x_new)
@@ -196,35 +197,3 @@ class DEAL(ClassicOptimizer):
         self.pop = self.get_sorted_population(self.pop, self.problem.minmax)
         self.g_best = self.pop[0].copy()
         self.all_history_best_pop += [self.g_best.copy()]
-
-
-def stats_solution(mode, arr):
-    all_modes = {
-        'mode': lambda s: mode(s, keepdims=True)[0][0],
-        'median': lambda s: np.median(s, axis=0),
-        'mean': lambda s: mode(s, axis=0),
-    }
-
-    if f_mode := all_modes.get(mode):
-        return f_mode(arr)
-
-    raise ValueError("Invalid mode")
-
-
-def lehmer_mean(list_objects):
-    temp = np.sum(list_objects)
-    return 0 if temp == 0 else np.sum(list_objects ** 2) / temp
-
-
-def update_history(dyn_miu_cr, dyn_miu_f, ap, list_cr, list_f):
-    if len(list_cr) == 0:
-        dyn_miu_cr = (1 - ap) * dyn_miu_cr + ap * 0.5
-    else:
-        dyn_miu_cr = (1 - ap) * dyn_miu_cr + ap * np.mean(np.array(list_cr))
-
-    if len(list_f) == 0:
-        dyn_miu_f = (1 - ap) * dyn_miu_f + ap * 0.5
-    else:
-        dyn_miu_f = (1 - ap) * dyn_miu_f + ap * lehmer_mean(np.array(list_f))
-
-    return dyn_miu_cr, dyn_miu_cr
