@@ -101,6 +101,7 @@ class DELU(ClassicOptimizer):
             self.pop += [self.generate_agent()]
             self.pop_size += 1
 
+        g_best_mode_solution = self.g_best_history.solution
         diff = math.fabs(self.w_stats - self.b_stats)
         self.p = 1 if diff == 0 else diff
 
@@ -111,7 +112,7 @@ class DELU(ClassicOptimizer):
 
             idx_0, idx_1 = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 2, replace=False)
             pos_new = (self.pop[idx].solution + self.uf * (
-                    self.g_best_history.solution - self.pop[idx].solution) + self.uf * (
+                    g_best_mode_solution - self.pop[idx].solution) + self.uf * (
                                self.pop[idx_0].solution - self.pop[idx_1].solution)) + self.pop[idx].velocity
 
             pos_new = self.mutation(self.pop[idx].solution, pos_new)
