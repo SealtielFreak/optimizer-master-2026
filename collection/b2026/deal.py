@@ -5,8 +5,7 @@ import numpy as np
 from mealpy.optimizer.classic import ClassicOptimizer
 from mealpy.utils.agent import Agent
 
-from scipy.special import gamma
-from scipy.stats import wilcoxon
+from scipy.stats import wilcoxon, norm, mode
 
 
 class DEAL(ClassicOptimizer):
@@ -25,18 +24,21 @@ class DEAL(ClassicOptimizer):
         self.history_best_pop = []
         self.history_worst_pop = []
 
+        self.counter_pop_tolerance = 10
         self.counter_pop = 0
 
         self.b_stats = 1
         self.w_stats = 1
         self.p = 1
 
+        self.g_best_history = None
+        self.g_worst_history = None
+
         self.minimum_pop = self.validator.check_int("minimum_pop", minimum_pop, [4, 100000])
         self.epoch = self.validator.check_int("epoch", epoch, [1, 100000])
         self.pop_size = self.validator.check_int("pop_size", pop_size, [5, 10000])
         self.wf = self.validator.check_float("wf", wf, (-3.0, 3.0))
         self.cr = self.validator.check_float("cr", cr, (0, 1.0))
-        self.counter_pop_tolerance = 10
 
         self.set_parameters(["epoch", "pop_size", "wf", "cr", "minimum_pop"])
         self.sort_flag = False
@@ -88,11 +90,24 @@ class DEAL(ClassicOptimizer):
 
         # Update weight after each move count  (weight down)
 
+        best_pop_fitness = []
+        wors_pop_fitness = []
+
         if len(self.history_best_pop) > 1:
-            self.b_stats = wilcoxon([p.target.fitness for p in self.history_best_pop]).pvalue
+            self.g_best_history = self.get_sorted_population(self.history_best_pop, self.problem.minmax)[0]
+
+            best_pop_fitness = [p.target.fitness for p in self.history_best_pop]
+            self.b_stats = wilcoxon(best_pop_fitness).pvalue
+        else:
+            self.g_best_history = self.g_best
 
         if len(self.history_worst_pop) > 1:
-            self.w_stats = wilcoxon([p.target.fitness for p in self.history_worst_pop]).pvalue
+            self.g_worst_history = self.get_sorted_population(self.history_worst_pop, self.problem.minmax)[-1]
+
+            wors_pop_fitness = [p.target.fitness for p in self.history_worst_pop]
+            self.w_stats = wilcoxon(wors_pop_fitness).pvalue
+        else:
+            self.g_worst_history = self.g_worst
 
         current_pop_len = len(self.pop)
 
@@ -112,8 +127,9 @@ class DEAL(ClassicOptimizer):
         for idx in range(0, self.pop_size):
             self.pop[idx].velocity *= self.p
 
-            idx_list = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 3, replace=False)
-            pos_new = (self.pop[idx_list[0]].solution + self.wf * (self.pop[idx_list[1]].solution - self.pop[idx_list[2]].solution)) + self.pop[idx].velocity
+            idx_list = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 2, replace=False)
+            pos_new = (self.pop[idx].solution + self.wf * (self.g_best_history.solution - self.pop[idx].solution) + self.wf * (self.pop[idx_list[0]].solution - self.pop[idx_list[1]].solution)) + self.pop[idx].velocity
+
             pos_new = self.mutation(self.pop[idx].solution, pos_new)
 
             pos_new = self.correct_solution(pos_new)
@@ -143,4 +159,4 @@ class DEAL(ClassicOptimizer):
         self.history_best_pop += [self.pop[0]]
         self.history_worst_pop += [self.pop[-1]]
 
-        self.gbest = self.get_sorted_population(self.pop, self.problem.minmax)[0]
+        self.g_best = self.get_sorted_population(self.pop, self.problem.minmax)[0]
