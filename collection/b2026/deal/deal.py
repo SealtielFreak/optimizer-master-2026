@@ -1,4 +1,5 @@
 import dataclasses
+import typing
 
 import numpy as np
 from mealpy.optimizer.classic import ClassicOptimizer
@@ -41,7 +42,13 @@ class LayersPopulation:
     mutation = lambda a, b: a
     correct_solution = lambda pos: pos
 
-    def evolve(self, epoch, minmax, ftarget, mode: str = "sorted") -> Agent | None:
+    def evolve(
+            self,
+            epoch: int,
+            minmax: str,
+            f_target: typing.Callable,
+            mode: str = "sorted"
+    ) -> Agent | None:
         """
         Evolve method for layer execute (compatible with paralelism)
         """
@@ -114,7 +121,7 @@ class LayersPopulation:
 
         new_targets = []
         for idx, pos_new in enumerate(pos_new_solutions):
-            target = ftarget(pos_new)
+            target = f_target(pos_new)
             new_targets.append((pos_new, target))
 
         for idx, (pos_new, target) in enumerate(new_targets):
