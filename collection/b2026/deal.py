@@ -10,7 +10,7 @@ from scipy.stats import wilcoxon
 
 
 class DEAL(ClassicOptimizer):
-    def __init__(self, epoch: int = 10000, pop_size: int = 100, minimum_pop: int = 4, wf: float = 0.1,
+    def __init__(self, epoch: int = 10000, pop_size: int = 100, minimum_pop: int = 4, wf: float = 0.1, cr: float = 0.9,
                  **kwargs: object) -> None:
         """
         Args:
@@ -25,6 +25,8 @@ class DEAL(ClassicOptimizer):
         self.history_best_pop = []
         self.history_worst_pop = []
 
+        self.counter_pop = 0
+
         self.b_stats = 1
         self.w_stats = 1
         self.p = 1
@@ -33,8 +35,10 @@ class DEAL(ClassicOptimizer):
         self.epoch = self.validator.check_int("epoch", epoch, [1, 100000])
         self.pop_size = self.validator.check_int("pop_size", pop_size, [5, 10000])
         self.wf = self.validator.check_float("wf", wf, (-3.0, 3.0))
+        self.cr = self.validator.check_float("cr", cr, (0, 1.0))
+        self.counter_pop_tolerance = 10
 
-        self.set_parameters(["epoch", "pop_size", "wf", "minimum_pop"])
+        self.set_parameters(["epoch", "pop_size", "wf", "cr", "minimum_pop"])
         self.sort_flag = False
         self.is_parallelizable = False
 
@@ -42,6 +46,11 @@ class DEAL(ClassicOptimizer):
 
         self.v_max = 0
         self.v_min = 0
+
+    def mutation(self, current_pos, new_pos):
+        condition = self.generator.random(self.problem.n_dims) < self.cr
+        pos_new = np.where(condition, new_pos, current_pos)
+        return self.correct_solution(pos_new)
 
     def initialize_variables(self):
         self.v_max = 0.5 * (self.problem.ub - self.problem.lb)
@@ -90,6 +99,7 @@ class DEAL(ClassicOptimizer):
         if self.b_stats < 0.05 and current_pop_len > self.minimum_pop and epoch > self.epoch // 3:
             self.pop.pop(0)
             self.pop_size -= 1
+            self.counter_pop += 1
         elif current_pop_len < self.default_pop_size:
             self.pop += [self.generate_agent()]
             self.pop_size += 1
@@ -104,6 +114,7 @@ class DEAL(ClassicOptimizer):
 
             idx_list = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 3, replace=False)
             pos_new = (self.pop[idx_list[0]].solution + self.wf * (self.pop[idx_list[1]].solution - self.pop[idx_list[2]].solution)) + self.pop[idx].velocity
+            pos_new = self.mutation(self.pop[idx].solution, pos_new)
 
             pos_new = self.correct_solution(pos_new)
             pos_new_solutions.append(pos_new)
