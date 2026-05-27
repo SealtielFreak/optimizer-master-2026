@@ -22,6 +22,7 @@ class DEAL(ClassicOptimizer):
             miu_cr: float = 0.5,
             cr: float = 0.9,
             ap: float = 0.1,
+            cluster: int = 5,
             stats_mode: str = "sorted",
             **kwargs: object
     ) -> None:
@@ -52,9 +53,10 @@ class DEAL(ClassicOptimizer):
         self.cr = self.validator.check_float("cr", cr, (0, 1.0))
         self.ap = self.validator.check_float("ap", ap, (0, 1.0))
         self.minimum_pop = self.validator.check_int("minimum_pop", minimum_pop, [4, 100000])
+        self.cluster = self.validator.check_int("cluster", cluster, [1, 100000])
         self.stats_mode = self.validator.check_str("stats_mode", stats_mode, self.STATS_MODES)
 
-        self.set_parameters(["epoch", "pop_size", "miu_f", "miu_cr", "cr", "minimum_pop", "stats_mode"])
+        self.set_parameters(["epoch", "pop_size", "miu_f", "miu_cr", "cr", "minimum_pop", "cluster", "stats_mode"])
 
         self.default_pop_size = self.pop_size
 
