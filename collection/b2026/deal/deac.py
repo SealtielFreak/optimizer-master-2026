@@ -7,9 +7,9 @@ from utils import stats_solution
 from utils.mutation import update_history
 
 
-class DEAP(ClassicOptimizer):
+class DEAC(ClassicOptimizer):
     """
-    Differential Evolution Adaptative Population
+        Differential Evolution Adaptative Cauchy
     """
 
     STATS_MODES = 'mode', 'sorted', 'median', 'mean'
@@ -23,16 +23,9 @@ class DEAP(ClassicOptimizer):
             miu_cr: float = 0.5,
             cr: float = 0.9,
             ap: float = 0.1,
-            cluster: int = 5,
             stats_mode: str = "sorted",
             **kwargs: object
     ) -> None:
-        """
-        Args:
-            epoch: maximum number of iterations, default = 10000
-            pop_size: number of population size, default = 100
-        """
-
         super().__init__(**kwargs)
 
         self.all_history_best_pop = []
@@ -54,15 +47,11 @@ class DEAP(ClassicOptimizer):
         self.cr = self.validator.check_float("cr", cr, (0, 1.0))
         self.ap = self.validator.check_float("ap", ap, (0, 1.0))
         self.minimum_pop = self.validator.check_int("minimum_pop", minimum_pop, [4, 100000])
-        self.cluster = self.validator.check_int("cluster", cluster, [1, 100000])
         self.stats_mode = self.validator.check_str("stats_mode", stats_mode, self.STATS_MODES)
 
-        self.set_parameters(["epoch", "pop_size", "miu_f", "miu_cr", "cr", "minimum_pop", "cluster", "stats_mode"])
+        self.set_parameters(["epoch", "pop_size", "miu_f", "miu_cr", "cr", "minimum_pop", "stats_mode"])
 
         self.default_pop_size = self.pop_size
-
-        self.v_max = 0
-        self.v_min = 0
 
         self.dyn_miu_cr = 0
         self.dyn_miu_f = 0
@@ -82,21 +71,17 @@ class DEAP(ClassicOptimizer):
     def initialize_variables(self):
         self.dyn_miu_cr = self.miu_cr
         self.dyn_miu_f = self.miu_f
-        self.dyn_pop_archive = list()
+        self.dyn_pop_archive = []
 
     def generate_empty_agent(self, solution: np.ndarray = None) -> Agent:
         if solution is None:
             solution = self.problem.generate_solution(encoded=True)
 
-        velocity = self.generator.uniform(self.v_min, self.v_max)
-        local_pos = solution.copy()
-
-        return Agent(solution=solution, velocity=velocity, local_solution=local_pos)
+        return Agent(solution=solution)
 
     def generate_agent(self, solution: np.ndarray = None) -> Agent:
         agent = self.generate_empty_agent(solution)
         agent.target = self.get_target(agent.solution)
-        agent.local_target = agent.target.copy()
 
         return agent
 
@@ -165,10 +150,10 @@ class DEAP(ClassicOptimizer):
             temp_f += [f]
             temp_cr += [cr]
 
-            r1_idx, r2_idx = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 2, replace=False)
+            idx_0, idx_1 = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 2, replace=False)
             x_new = (
                 (self.pop[idx].solution + f * (g_best_mode_solution - self.pop[idx].solution) + f * (
-                        self.pop[r1_idx].solution - self.pop[r2_idx].solution))
+                        self.pop[idx_0].solution - self.pop[idx_1].solution))
             )
 
             pos_new = self.mutation(self.pop[idx].solution, x_new)
