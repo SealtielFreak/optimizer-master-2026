@@ -1,57 +1,43 @@
-import dataclasses
-import typing
-
 import numpy as np
 from mealpy.optimizer.classic import ClassicOptimizer
 from mealpy.utils.agent import Agent
 from scipy.stats import wilcoxon, cauchy
 
+from collection.b2026.deal.deal.layer import Layer
 from utils import stats_solution
 from utils.mutation import update_history
 
 _STATS_MODES = 'mode', 'sorted', 'median', 'mean'
 
 
-@dataclasses.dataclass
-class LayersPopulation:
-    layer_id: int
+class LayerPopulation(Layer):
+    def __init__(
+            self,
+            layer_id: int,
+            global_pop: list[Agent],
+            local_pop: list[Agent],
+            minimum_pop: int,
+            n_epoch: int,
+            ap: float,
+            dyn_miu_cr: float,
+            dyn_miu_f: float
+    ):
+        super().__init__(
+            layer_id, global_pop, local_pop, minimum_pop, n_epoch, ap, dyn_miu_cr, dyn_miu_f
+        )
 
-    global_pop: list[Agent]
-
-    pop: list[Agent]
-    pop_size: int
-    minimum_pop: int
-    default_pop_size: int
-
-    ap: float
-    dyn_miu_cr: float
-    dyn_miu_f: float
-
-    n_epoch: int
-
-    all_local_history_best_pop: list[Agent] = dataclasses.field(default_factory=list)
-    all_local_history_wort_pop: list[Agent] = dataclasses.field(default_factory=list)
-
-    dyn_local_pop: list[Agent] = dataclasses.field(default_factory=list)
-
-    g_best: Agent | None = dataclasses.field(default_factory=Agent)
-    g_best_history: Agent | None = dataclasses.field(default_factory=Agent)
-
-    generator: np.random.Generator = dataclasses.field(default_factory=np.random.default_rng)
-
-    mutation = lambda a, b: a
-    correct_solution = lambda pos: pos
+        self.dyn_local_pop: list[Agent] = []
+        self.ap = ap
+        self.dyn_miu_cr = dyn_miu_cr
+        self.dyn_miu_f = dyn_miu_f
 
     def evolve(
             self,
             epoch: int,
             minmax: str,
-            f_target: typing.Callable,
+            f_target,
             mode: str = "sorted"
     ) -> Agent | None:
-        """
-        Evolve method for layer execute (compatible with paralelism)
-        """
         b_stats = 1
 
         list_f = []
@@ -144,26 +130,6 @@ class LayersPopulation:
 
         return self.g_best
 
-    def sorted(self, minmax: str = "min") -> list[Agent]:
-        sorted(self.pop, key=lambda p: p.target.fitness)
-
-        if minmax == "max":
-            self.pop = self.pop[::-1]
-
-        return self.pop
-
-    def sorted_best(self, minmax: str = "min") -> list[Agent]:
-        sorted(self.all_local_history_best_pop, key=lambda p: p.target.fitness)
-
-        if minmax == "max":
-            self.all_local_history_best_pop = self.all_local_history_best_pop[::-1]
-
-        return self.all_local_history_best_pop
-
-    def __iter__(self):
-        return iter(self.pop)
-
-
 class DEAL(ClassicOptimizer):
     """
         Differential Evolution Adaptative-Layers: Based in DE, JADE, L-SHADED
@@ -244,7 +210,7 @@ class DEAL(ClassicOptimizer):
             )
 
             new_pop = self.pop[a:b]
-            layer = LayersPopulation(
+            layer = Layer(
                 layer_id=i,
                 pop=new_pop,
                 global_pop=self.pop,
