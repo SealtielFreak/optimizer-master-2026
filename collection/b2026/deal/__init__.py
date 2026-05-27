@@ -12,6 +12,10 @@ _STATS_MODES = 'mode', 'sorted', 'median', 'mean'
 
 @dataclasses.dataclass
 class LayersPopulation:
+    layer_id: int
+
+    global_pop: list[Agent]
+
     pop: list[Agent]
     pop_size: int
     minimum_pop: int
@@ -26,6 +30,8 @@ class LayersPopulation:
     all_local_history_best_pop: list[Agent] = dataclasses.field(default_factory=list)
     all_local_history_wort_pop: list[Agent] = dataclasses.field(default_factory=list)
 
+    dyn_local_pop: list[Agent] = dataclasses.field(default_factory=list)
+
     g_best: Agent | None = dataclasses.field(default_factory=Agent)
     g_best_history: Agent | None = dataclasses.field(default_factory=Agent)
 
@@ -34,7 +40,7 @@ class LayersPopulation:
     mutation = lambda a, b: a
     correct_solution = lambda pos: pos
 
-    def evolve(self, epoch, minmax, target, mode: str = "sorted") -> Agent | None:
+    def evolve(self, epoch, minmax, ftarget, mode: str = "sorted") -> Agent | None:
         """
         Evolve method for layer execute (compatible with)
         """
@@ -47,7 +53,7 @@ class LayersPopulation:
 
         current_history_best_pop = []
 
-        self.g_best_history = self.g_best
+        self.g_best_history = self.g_best.copy()
 
         if len(self.all_local_history_best_pop) > 5:
             current_history_best_pop = self.sorted_best(minmax)
@@ -59,7 +65,7 @@ class LayersPopulation:
         current_pop_len = len(self.pop)
         g_best_mode_solution = self.g_best_history.solution
 
-        if mode in _STATS_MODES and len(current_history_best_pop) > (self.default_pop_size / 3):
+        if mode in ('mode', 'median', 'mean') and len(current_history_best_pop) > (self.default_pop_size / 3):
             g_best_mode_solution = stats_solution(
                 mode,
                 np.array([p.solution for p in current_history_best_pop])
@@ -68,12 +74,12 @@ class LayersPopulation:
         self.pop = self.sorted(minmax)
 
         if b_stats < 0.05 and current_pop_len > self.minimum_pop and epoch > self.n_epoch // 3:
-            self.all_local_history_best_pop += [self.pop[-1].copy()]
+            self.dyn_local_pop += [self.pop[-1]]
             self.pop_size -= 1
             self.pop.pop(-1)
-        elif current_pop_len < self.default_pop_size:
-            p = self.all_local_history_wort_pop[0].copy()
-            self.all_local_history_wort_pop.pop(0)
+        elif current_pop_len < self.default_pop_size // 4:
+            p = self.dyn_local_pop[0]
+            self.dyn_local_pop.pop(0)
             self.pop += [p]
             self.pop_size += 1
 
@@ -95,6 +101,7 @@ class LayersPopulation:
             temp_cr += [cr]
 
             r1_idx, r2_idx = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 2, replace=False)
+
             x_new = (
                 (self.pop[idx].solution + f * (g_best_mode_solution - self.pop[idx].solution) + f * (
                             self.pop[r1_idx].solution - self.pop[r2_idx].solution))
@@ -106,11 +113,11 @@ class LayersPopulation:
 
         new_targets = []
         for idx, pos_new in enumerate(pos_new_solutions):
-            target = target(pos_new)
+            target = ftarget(pos_new)
             new_targets.append((pos_new, target))
 
         for idx, (pos_new, target) in enumerate(new_targets):
-            if compare_target(target, self.pop[idx].target, self.problem.minmax):
+            if compare_target(target, self.pop[idx].target, minmax):
                 self.pop[idx].update(
                     solution=pos_new.copy(),
                     target=target.copy()
@@ -123,11 +130,8 @@ class LayersPopulation:
             self.dyn_miu_cr, self.dyn_miu_f, self.ap, list_cr, list_f,
         )
 
-        self.pop = self.sorted(self.problem.minmax)
-        self.g_best = self.pop[0].copy()
-        self.all_local_history_best_pop += [self.g_best.copy()]
         self.pop = self.sorted(minmax)
-        self.g_best = self.pop[0].copy()
+        self.g_best = self.pop[0]
         self.all_local_history_best_pop += [self.g_best.copy()]
 
         return self.g_best
@@ -152,7 +156,7 @@ class LayersPopulation:
         return iter(self.pop)
 
 
-class DEAL(ClassicOptimizer):
+class DEALL(ClassicOptimizer):
     """
     Differential Evolution Adaptative-Layers: Based in DE, JADE, L-SHADED
     """
@@ -216,6 +220,8 @@ class DEAL(ClassicOptimizer):
         self.sort_flag = False
         self.is_parallelizable = False
 
+        self.all_g_best_layers = []
+
         self.all_layers = []
         self.layers_size = 0
 
@@ -237,23 +243,24 @@ class DEAL(ClassicOptimizer):
 
             new_pop = self.pop[a:b]
             layer = LayersPopulation(
+                layer_id=i,
                 pop=new_pop,
+                global_pop=self.pop,
                 pop_size=len(new_pop),
                 minimum_pop=self.minimum_pop,
-                default_pop_size=self.default_pop_size,
+                default_pop_size=len(new_pop),
                 ap=self.ap,
                 dyn_miu_cr=self.dyn_miu_cr,
                 dyn_miu_f=self.dyn_miu_f,
                 n_epoch=self.epoch,
             )
 
+            layer.g_best = self.generate_agent()
             layer.mutation = self.mutation
-            layer.amend_solution = self.amend_solution
+            layer.correct_solution = self.correct_solution
             layer.generator = self.generator
 
             self.all_layers += [layer]
-
-        print(self.n_layers, len(self.all_layers))
 
     def mutation(self, current_pos, new_pos):
         condition = self.generator.random(self.problem.n_dims) < self.cr
@@ -287,97 +294,16 @@ class DEAL(ClassicOptimizer):
         for layer in self.all_layers:
             layer.evolve(epoch, self.problem.minmax, self.get_target)
 
-    def evolve_old(self, epoch):
-        list_f = []
-        list_cr = []
-        temp_f = []
-        temp_cr = []
+            self.all_global_history_best_pop += [layer.g_best.copy()]
+            self.all_g_best_layers += [layer.g_best.target.fitness]
 
-        self.current_history_best_pop = []
-        self.g_best_history = self.g_best
+            print(layer.g_best.target.fitness)
 
-        if len(self.all_global_history_best_pop) > 5:
-            self.current_history_best_pop = self.get_sorted_population(
-                self.all_global_history_best_pop, self.problem.minmax
-            )
-            self.g_best_history = self.current_history_best_pop[0].copy()
+        b_stats = wilcoxon(self.all_g_best_layers).pvalue
 
-            best_pop_fitness = [p.target.fitness for p in self.all_global_history_best_pop]
-            self.b_stats = wilcoxon(best_pop_fitness).pvalue
-
-        current_pop_len = len(self.pop)
-        g_best_mode_solution = self.g_best_history.solution
-
-        if self.mode in _STATS_MODES and len(self.current_history_best_pop) > (self.default_pop_size / 3):
-            g_best_mode_solution = stats_solution(
-                self.mode,
-                np.array([p.solution for p in self.current_history_best_pop])
-            )
-
-        self.pop = self.get_sorted_population(
-            self.pop, self.problem.minmax
-        )
-
-        if self.b_stats < 0.05 and current_pop_len > self.minimum_pop and epoch > self.epoch // 3:
-            self.all_global_history_wort_pop += [self.pop[-1].copy()]
-            self.pop_size -= 1
-            self.counter_pop += 1
-            self.pop.pop(-1)
-        elif current_pop_len < self.default_pop_size:
-            p = self.all_global_history_wort_pop[0].copy()
-            self.all_global_history_wort_pop.pop(0)
-            self.pop += [p]
-            self.pop_size += 1
-
-        pos_new_solutions = []
-        for idx in range(0, self.pop_size):
-            cr = self.generator.normal(self.dyn_miu_cr, 0.1)
-            cr = np.clip(cr, 0, 1)
-
-            while True:
-                f = cauchy.rvs(self.dyn_miu_f, 0.1)
-
-                if f < 0:
-                    continue
-                elif f > 1:
-                    f = 1
-                break
-
-            temp_f += [f]
-            temp_cr += [cr]
-
-            r1_idx, r2_idx = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 2, replace=False)
-            x_new = (
-                (self.pop[idx].solution + f * (g_best_mode_solution - self.pop[idx].solution) + f * (
-                            self.pop[r1_idx].solution - self.pop[r2_idx].solution))
-            )
-
-            pos_new = self.mutation(self.pop[idx].solution, x_new)
-            pos_new = self.correct_solution(pos_new)
-            pos_new_solutions.append(pos_new)
-
-        new_targets = []
-        for idx, pos_new in enumerate(pos_new_solutions):
-            target = self.get_target(pos_new)
-            new_targets.append((pos_new, target))
-
-        for idx, (pos_new, target) in enumerate(new_targets):
-            if self.compare_target(target, self.pop[idx].target, self.problem.minmax):
-                self.pop[idx].update(
-                    solution=pos_new.copy(),
-                    target=target.copy()
-                )
-
-                list_cr.append(temp_cr[idx])
-                list_f.append(temp_f[idx])
-
-        self.dyn_miu_cr, self.dyn_miu_f = update_history(
-            self.dyn_miu_cr, self.dyn_miu_f, self.ap, list_cr, list_f,
-        )
-
-        self.pop = self.get_sorted_population(self.pop, self.problem.minmax)
-        self.g_best = self.pop[0].copy()
-        self.all_global_history_best_pop += [self.g_best.copy()]
+        self.all_global_history_best_pop = self.get_sorted_population(self.all_global_history_best_pop, self.problem.minmax)
+        self.g_best = self.all_global_history_best_pop[0]
+        print(self.g_best.target.fitness)
 
 
 def stats_solution(mode, arr):
