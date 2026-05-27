@@ -29,14 +29,9 @@ class DEAC(ClassicOptimizer):
         super().__init__(**kwargs)
 
         self.all_history_best_pop = []
-        self.all_history_wort_pop = []
-
-        self.counter_pop_tolerance = 10
-        self.counter_pop = 0
 
         self.b_stats = 1
-        self.w_stats = 1
-        self.impulse = 1
+        self.p = 1
 
         self.g_best_history = None
 
@@ -55,9 +50,6 @@ class DEAC(ClassicOptimizer):
 
         self.dyn_miu_cr = 0
         self.dyn_miu_f = 0
-
-        self.dyn_pop_archive = []
-        self.current_history_best_pop = []
 
         self.sort_flag = False
         self.is_parallelizable = False
@@ -97,40 +89,38 @@ class DEAC(ClassicOptimizer):
         temp_f = []
         temp_cr = []
 
-        self.current_history_best_pop = []
+        current_history_best_pop = []
         self.g_best_history = self.g_best
 
         if len(self.all_history_best_pop) > 5:
-            self.current_history_best_pop = self.get_sorted_population(
+            current_history_best_pop = self.get_sorted_population(
                 self.all_history_best_pop, self.problem.minmax
             )
-            self.g_best_history = self.current_history_best_pop[0].copy()
 
-            best_pop_fitness = [p.target.fitness for p in self.all_history_best_pop]
-            self.b_stats = wilcoxon(best_pop_fitness).pvalue
+            self.g_best_history = current_history_best_pop[0].copy()
+            self.b_stats = wilcoxon([p.target.fitness for p in self.all_history_best_pop]).pvalue
 
         current_pop_len = len(self.pop)
         g_best_mode_solution = self.g_best_history.solution
 
-        if self.mode in _STATS_MODES and len(self.current_history_best_pop) > (self.default_pop_size / 3):
+        if self.mode in _STATS_MODES and len(current_history_best_pop) > (self.default_pop_size / 3):
             g_best_mode_solution = stats_solution(
                 self.mode,
-                np.array([p.solution for p in self.current_history_best_pop])
+                np.array([p.solution for p in current_history_best_pop])
             )
 
         self.pop = self.get_sorted_population(
             self.pop, self.problem.minmax
         )
 
+        self.p = 1 if self.b_stats == 0 else self.b_stats
+        self.pop = self.get_sorted_population(self.pop, self.problem.minmax)
+
         if self.b_stats < 0.05 and current_pop_len > self.minimum_pop and epoch > self.epoch // 3:
-            self.all_history_wort_pop += [self.pop[-1].copy()]
-            self.pop_size -= 1
-            self.counter_pop += 1
             self.pop.pop(-1)
+            self.pop_size -= 1
         elif current_pop_len < self.default_pop_size:
-            p = self.all_history_wort_pop[0].copy()
-            self.all_history_wort_pop.pop(0)
-            self.pop += [p]
+            self.pop += [self.generate_agent()]
             self.pop_size += 1
 
         pos_new_solutions = []
@@ -145,6 +135,7 @@ class DEAC(ClassicOptimizer):
                     continue
                 elif f > 1:
                     f = 1
+
                 break
 
             temp_f += [f]
@@ -180,5 +171,7 @@ class DEAC(ClassicOptimizer):
         )
 
         self.pop = self.get_sorted_population(self.pop, self.problem.minmax)
-        self.g_best = self.pop[0].copy()
-        self.all_history_best_pop += [self.g_best.copy()]
+        g_best = self.pop[0].copy()
+
+        self.all_history_best_pop += [g_best]
+        self.g_best = g_best
