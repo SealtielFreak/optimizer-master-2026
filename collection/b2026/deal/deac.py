@@ -7,12 +7,13 @@ from utils import stats_solution
 from utils.mutation import update_history
 
 
+_STATS_MODES = 'mode', 'sorted', 'median', 'mean'
+
 class DEAC(ClassicOptimizer):
     """
         Differential Evolution Adaptative Cauchy
     """
 
-    STATS_MODES = 'mode', 'sorted', 'median', 'mean'
 
     def __init__(
             self,
@@ -47,7 +48,7 @@ class DEAC(ClassicOptimizer):
         self.cr = self.validator.check_float("cr", cr, (0, 1.0))
         self.ap = self.validator.check_float("ap", ap, (0, 1.0))
         self.minimum_pop = self.validator.check_int("minimum_pop", minimum_pop, [4, 100000])
-        self.stats_mode = self.validator.check_str("stats_mode", stats_mode, self.STATS_MODES)
+        self.stats_mode = self.validator.check_str("stats_mode", stats_mode, _STATS_MODES)
 
         self.set_parameters(["epoch", "pop_size", "miu_f", "miu_cr", "cr", "minimum_pop", "stats_mode"])
 
@@ -112,7 +113,7 @@ class DEAC(ClassicOptimizer):
         current_pop_len = len(self.pop)
         g_best_mode_solution = self.g_best_history.solution
 
-        if self.mode in self.STATS_MODES and len(self.current_history_best_pop) > (self.default_pop_size / 3):
+        if self.mode in _STATS_MODES and len(self.current_history_best_pop) > (self.default_pop_size / 3):
             g_best_mode_solution = stats_solution(
                 self.mode,
                 np.array([p.solution for p in self.current_history_best_pop])
