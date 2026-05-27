@@ -298,14 +298,14 @@ class DEALL(ClassicOptimizer):
             self.all_global_history_best_pop += [layer.g_best.copy()]
             self.all_g_best_layers += [layer.g_best.target.fitness]
 
-            print(layer.g_best.target.fitness)
+            # print(layer.g_best.target.fitness)
 
         b_stats = wilcoxon(self.all_g_best_layers).pvalue
 
         self.all_global_history_best_pop = self.get_sorted_population(self.all_global_history_best_pop,
                                                                       self.problem.minmax)
         self.g_best = self.all_global_history_best_pop[0]
-        print(self.g_best.target.fitness)
+        # print(self.g_best.target.fitness)
 
 
 def compare_target(target_x, target_y, minmax: str = "min") -> bool:
