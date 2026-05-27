@@ -20,8 +20,8 @@ class DEAL(ClassicOptimizer):
 
         super().__init__(**kwargs)
 
-        self.historial_best_pop = []
-        self.historial_worst_pop = []
+        self.history_best_pop = []
+        self.history_worst_pop = []
 
         self.b_stats = 1
         self.w_stats = 1
@@ -77,17 +77,17 @@ class DEAL(ClassicOptimizer):
         # Update weight after each move count  (weight down)
 
 
-        if len(self.historial_best_pop) > 1:
-            self.b_stats = wilcoxon([p.target.fitness for p in self.historial_best_pop]).pvalue
+        if len(self.history_best_pop) > 1:
+            self.b_stats = wilcoxon([p.target.fitness for p in self.history_best_pop]).pvalue
 
-        if len(self.historial_worst_pop) > 1:
-            self.w_stats = wilcoxon([p.target.fitness for p in self.historial_worst_pop]).pvalue
+        if len(self.history_worst_pop) > 1:
+            self.w_stats = wilcoxon([p.target.fitness for p in self.history_worst_pop]).pvalue
 
         current_pop_len = len(self.pop)
 
         if self.b_stats < 0.05 and current_pop_len > 3:
             self.pop = self.get_sorted_population(self.pop)[::-1]
-            self.historial_worst_pop += [self.pop[0]]
+            self.history_worst_pop += [self.pop[0]]
 
             self.pop.pop(0)
             self.pop_size -= 1
@@ -134,5 +134,5 @@ class DEAL(ClassicOptimizer):
                 )
 
         gbest = self.get_best_agent(self.pop, self.problem.minmax)
-        self.historial_best_pop.append(gbest)
-        self.gbest = sorted(self.historial_best_pop, key=lambda p: p.target.fitness)[0]
+        self.history_best_pop.append(gbest)
+        self.gbest = sorted(self.history_best_pop, key=lambda p: p.target.fitness)[0]
