@@ -3,7 +3,7 @@ from mealpy import PSO, DE, GWO, WOA, GA, SHADE, DE, EP
 from bench import AlgorithmSpec, BenchmarkSuite, ClassFunctionSpec
 from bench.func import get_all_default_problems
 
-from collection.b2026.deal import DEAL
+from collection.b2026.deal import DEALL
 
 ALGORITHMS = [
     AlgorithmSpec(name="PSO", cls=PSO.OriginalPSO),
@@ -19,10 +19,10 @@ ALGORITHMS = [
     # AlgorithmSpec(name="WOA", cls=WOA.OriginalWOA),
     # AlgorithmSpec(name="GA", cls=GA.BaseGA),
 
-    AlgorithmSpec(name="DEAL_MODE", cls=DEAL, kwargs=dict(stats_mode='mode')),
-    AlgorithmSpec(name="DEAL_MEDIAN", cls=DEAL, kwargs=dict(stats_mode='median')),
-    AlgorithmSpec(name="DEAL_MEAN", cls=DEAL, kwargs=dict(stats_mode='mean')),
-    AlgorithmSpec(name="DEAL_S", cls=DEAL, kwargs=dict(stats_mode='sorted')),
+    AlgorithmSpec(name="DEAL_MODE", cls=DEALL, kwargs=dict(stats_mode='mode')),
+    AlgorithmSpec(name="DEAL_MEDIAN", cls=DEALL, kwargs=dict(stats_mode='median')),
+    AlgorithmSpec(name="DEAL_MEAN", cls=DEALL, kwargs=dict(stats_mode='mean')),
+    AlgorithmSpec(name="DEAL_S", cls=DEALL, kwargs=dict(stats_mode='sorted')),
 ]
 
 FUNCTIONS = [
@@ -33,8 +33,8 @@ if __name__ == "__main__":
     suite = BenchmarkSuite(
         functions=FUNCTIONS,
         algorithms=ALGORITHMS,
-        epoch=750,
-        pop_size=120,
+        epoch=250,
+        pop_size=75,
         n_runs=3,
         n_workers=15,
     )
