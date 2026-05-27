@@ -16,17 +16,11 @@ class DELU(ClassicOptimizer):
         super().__init__(**kwargs)
 
         self.history_best_pop = []
-        self.history_worst_pop = []
-
-        self.counter_pop_tolerance = 10
-        self.counter_pop = 0
 
         self.b_stats = 1
-        self.w_stats = 1
         self.p = 1
 
         self.g_best_history = None
-        self.g_worst_history = None
 
         self.minimum_pop = self.validator.check_int("minimum_pop", minimum_pop, [4, 100000])
         self.epoch = self.validator.check_int("epoch", epoch, [1, 100000])
@@ -56,15 +50,16 @@ class DELU(ClassicOptimizer):
         if solution is None:
             solution = self.problem.generate_solution(encoded=True)
 
-        velocity = self.generator.uniform(self.v_min, self.v_max)
-        local_pos = solution.copy()
+        impulse = self.generator.uniform(self.v_min, self.v_max)
 
-        return Agent(solution=solution, velocity=velocity, local_solution=local_pos)
+        return Agent(
+            solution=solution,
+            impulse=impulse,
+        )
 
     def generate_agent(self, solution: np.ndarray = None) -> Agent:
         agent = self.generate_empty_agent(solution)
         agent.target = self.get_target(agent.solution)
-        agent.local_target = agent.target.copy()
 
         return agent
 
@@ -75,45 +70,33 @@ class DELU(ClassicOptimizer):
         return np.where(condition, solution, pos_rand)
 
     def evolve(self, epoch):
+        self.g_best_history = self.g_best
         if len(self.history_best_pop) > 1:
             self.g_best_history = self.get_sorted_population(self.history_best_pop, self.problem.minmax)[0]
 
             best_pop_fitness = [p.target.fitness for p in self.history_best_pop]
             self.b_stats = wilcoxon(best_pop_fitness).pvalue
-        else:
-            self.g_best_history = self.g_best
-
-        if len(self.history_worst_pop) > 1:
-            self.g_worst_history = self.get_sorted_population(self.history_worst_pop, self.problem.minmax)[-1]
-
-            wors_pop_fitness = [p.target.fitness for p in self.history_worst_pop]
-            self.w_stats = wilcoxon(wors_pop_fitness).pvalue
-        else:
-            self.g_worst_history = self.g_worst
 
         current_pop_len = len(self.pop)
 
         if self.b_stats < 0.05 and current_pop_len > self.minimum_pop and epoch > self.epoch // 3:
             self.pop.pop(0)
             self.pop_size -= 1
-            self.counter_pop += 1
         elif current_pop_len < self.default_pop_size:
             self.pop += [self.generate_agent()]
             self.pop_size += 1
 
         g_best_mode_solution = self.g_best_history.solution
-        diff = math.fabs(self.w_stats - self.b_stats)
-        self.p = 1 if diff == 0 else diff
+        self.p = 1 if self.b_stats == 0 else self.b_stats
 
         pos_new_solutions = []
-
         for idx in range(0, self.pop_size):
-            self.pop[idx].velocity *= self.p
+            self.pop[idx].impulse *= self.p
 
             idx_0, idx_1 = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 2, replace=False)
             pos_new = (self.pop[idx].solution + self.uf * (
                     g_best_mode_solution - self.pop[idx].solution) + self.uf * (
-                               self.pop[idx_0].solution - self.pop[idx_1].solution)) + self.pop[idx].velocity
+                               self.pop[idx_0].solution - self.pop[idx_1].solution)) + self.pop[idx].impulse
 
             pos_new = self.mutation(self.pop[idx].solution, pos_new)
 
@@ -121,7 +104,6 @@ class DELU(ClassicOptimizer):
             pos_new_solutions.append(pos_new)
 
         new_targets = []
-
         for idx, pos_new in enumerate(pos_new_solutions):
             target = self.get_target(pos_new)
             new_targets.append((pos_new, target))
@@ -133,15 +115,8 @@ class DELU(ClassicOptimizer):
                     target=target.copy()
                 )
 
-            if self.compare_target(target, self.pop[idx].local_target, self.problem.minmax):
-                self.pop[idx].update(
-                    local_solution=pos_new.copy(),
-                    local_target=target.copy()
-                )
-
         self.pop = self.get_sorted_population(self.pop, self.problem.minmax)
+        g_best = self.pop[0].copy()
 
-        self.history_best_pop += [self.pop[0]]
-        self.history_worst_pop += [self.pop[-1]]
-
-        self.g_best = self.get_sorted_population(self.pop, self.problem.minmax)[0]
+        self.history_best_pop += [g_best]
+        self.g_best = g_best
