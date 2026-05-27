@@ -112,30 +112,34 @@ class DEAL(ClassicOptimizer):
         temp_cr = []
 
         self.current_history_best_pop = []
+        self.g_best_history = self.g_best
 
         if len(self.all_history_best_pop) > 5:
-            self.current_history_best_pop = self.get_sorted_population(self.all_history_best_pop, self.problem.minmax)
+            self.current_history_best_pop = self.get_sorted_population(
+                self.all_history_best_pop, self.problem.minmax
+            )
             self.g_best_history = self.current_history_best_pop[0].copy()
 
             best_pop_fitness = [p.target.fitness for p in self.all_history_best_pop]
             self.b_stats = wilcoxon(best_pop_fitness).pvalue
-        else:
-            self.g_best_history = self.g_best
 
         current_pop_len = len(self.pop)
-
         g_best_mode_solution = self.g_best_history.solution
-        if len(self.current_history_best_pop) > (self.default_pop_size / 3) and self.mode in self.STATS_MODES:
-            g_best_mode_solution = stats_solution(self.mode,
-                                                  np.array([p.solution for p in self.current_history_best_pop]))
 
-        self.pop = self.get_sorted_population(self.pop, self.problem.minmax)
+        if self.mode in self.STATS_MODES and len(self.current_history_best_pop) > (self.default_pop_size / 3):
+            g_best_mode_solution = stats_solution(
+                self.mode,
+                np.array([p.solution for p in self.current_history_best_pop])
+            )
+
+        self.pop = self.get_sorted_population(
+            self.pop, self.problem.minmax
+        )
 
         if self.b_stats < 0.05 and current_pop_len > self.minimum_pop and epoch > self.epoch // 3:
             self.all_history_wort_pop += [self.pop[-1].copy()]
             self.pop_size -= 1
             self.counter_pop += 1
-
             self.pop.pop(-1)
         elif current_pop_len < self.default_pop_size:
             p = self.all_history_wort_pop[0].copy()
@@ -185,7 +189,7 @@ class DEAL(ClassicOptimizer):
                 list_cr.append(temp_cr[idx])
                 list_f.append(temp_f[idx])
 
-        self.dyn_miu_cr, self.dyn_miu_f = update_historial(
+        self.dyn_miu_cr, self.dyn_miu_f = update_history(
             self.dyn_miu_cr, self.dyn_miu_f, self.ap, list_cr, list_f,
         )
 
@@ -212,7 +216,7 @@ def lehmer_mean(list_objects):
     return 0 if temp == 0 else np.sum(list_objects ** 2) / temp
 
 
-def update_historial(dyn_miu_cr, dyn_miu_f, ap, list_cr, list_f):
+def update_history(dyn_miu_cr, dyn_miu_f, ap, list_cr, list_f):
     if len(list_cr) == 0:
         dyn_miu_cr = (1 - ap) * dyn_miu_cr + ap * 0.5
     else:
