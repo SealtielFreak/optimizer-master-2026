@@ -157,7 +157,7 @@ class LayersPopulation:
         return iter(self.pop)
 
 
-class DEALL(ClassicOptimizer):
+class DEAL(ClassicOptimizer):
     """
     Differential Evolution Adaptative-Layers: Based in DE, JADE, L-SHADED
     """
