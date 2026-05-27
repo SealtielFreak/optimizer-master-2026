@@ -159,7 +159,7 @@ class LayersPopulation:
 
 class DEAL(ClassicOptimizer):
     """
-    Differential Evolution Adaptative-Layers: Based in DE, JADE, L-SHADED
+        Differential Evolution Adaptative-Layers: Based in DE, JADE, L-SHADED
     """
 
     def __init__(
@@ -175,12 +175,6 @@ class DEAL(ClassicOptimizer):
             stats_mode: str = "sorted",
             **kwargs: object
     ) -> None:
-        """
-        Args:
-            epoch: maximum number of iterations, default = 10000
-            pop_size: number of population size, default = 100
-        """
-
         super().__init__(**kwargs)
 
         self.all_global_history_best_pop = []
