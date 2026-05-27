@@ -72,16 +72,34 @@ class DEAL(ClassicOptimizer):
         self.sort_flag = False
         self.is_parallelizable = False
 
+        self.pop_clusters = []
+        self.pop_clusters_size = 0
+
+    def initialize_variables(self):
+        self.dyn_miu_cr = self.miu_cr
+        self.dyn_miu_f = self.miu_f
+        self.dyn_pop_archive = []
+
+        self.pop_clusters_size = self.pop_size // self.cluster
+
+    def initialization(self) -> None:
+        super().initialization()
+
+        for i in range(0, self.cluster):
+            a, b = (
+                self.pop_clusters_size * i,
+                self.pop_clusters_size * (i + 1)
+            )
+
+            self.pop_clusters += [self.pop[a:b]]
+
+        print(self.cluster, len(self.pop_clusters))
+
     def mutation(self, current_pos, new_pos):
         condition = self.generator.random(self.problem.n_dims) < self.cr
         pos_new = np.where(condition, new_pos, current_pos)
 
         return self.correct_solution(pos_new)
-
-    def initialize_variables(self):
-        self.dyn_miu_cr = self.miu_cr
-        self.dyn_miu_f = self.miu_f
-        self.dyn_pop_archive = list()
 
     def generate_empty_agent(self, solution: np.ndarray = None) -> Agent:
         if solution is None:
