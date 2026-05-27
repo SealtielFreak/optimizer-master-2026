@@ -9,33 +9,32 @@ ALGORITHMS = [
     AlgorithmSpec(name="PSO", cls=PSO.OriginalPSO),
     # AlgorithmSpec(name="GWO", cls=GWO.OriginalGWO),
 
-    # AlgorithmSpec(name="SHADE", cls=SHADE.OriginalSHADE),
-    # AlgorithmSpec(name="LSHADE", cls=SHADE.L_SHADE),
-    # AlgorithmSpec(name="JADE", cls=DE.JADE),
-    # AlgorithmSpec(name="DE", cls=DE.OriginalDE),
+    AlgorithmSpec(name="SHADE", cls=SHADE.OriginalSHADE),
+    AlgorithmSpec(name="LSHADE", cls=SHADE.L_SHADE),
+    AlgorithmSpec(name="JADE", cls=DE.JADE),
+    AlgorithmSpec(name="DE", cls=DE.OriginalDE),
 
     AlgorithmSpec(name="EP", cls=EP.LevyEP),
 
     # AlgorithmSpec(name="WOA", cls=WOA.OriginalWOA),
     # AlgorithmSpec(name="GA", cls=GA.BaseGA),
 
-    # AlgorithmSpec(name="HPSOA", cls=HPSO_LH2026A),
-    # AlgorithmSpec(name="HPSOB", cls=HPSO_LH2026B),
-    # AlgorithmSpec(name="HPSOC", cls=HPSO_LH2026C),
-
-    AlgorithmSpec(name="DEAL", cls=DEAL),
+    AlgorithmSpec(name="DEAL_MODE", cls=DEAL, kwargs=dict(stats_mode='mode')),
+    AlgorithmSpec(name="DEAL_MEDIAN", cls=DEAL, kwargs=dict(stats_mode='median')),
+    AlgorithmSpec(name="DEAL_MEAN", cls=DEAL, kwargs=dict(stats_mode='mean')),
+    AlgorithmSpec(name="DEAL_S", cls=DEAL, kwargs=dict(stats_mode='sorted')),
 ]
 
 FUNCTIONS = [
-    ClassFunctionSpec(p, ndim=20) for p in get_all_default_problems()
+    ClassFunctionSpec(p, ndim=50) for p in get_all_default_problems()
 ]
 
 if __name__ == "__main__":
     suite = BenchmarkSuite(
         functions=FUNCTIONS,
         algorithms=ALGORITHMS,
-        epoch=200,
-        pop_size=75,
+        epoch=750,
+        pop_size=120,
         n_runs=3,
         n_workers=15,
     )

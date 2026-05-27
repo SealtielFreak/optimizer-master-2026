@@ -6,7 +6,7 @@ from bench.func import get_default
 from scipy.stats import wilcoxon, norm, mode
 
 problem = get_default(0, ndim=50)
-model = DEAL(epoch=350, pop_size=120)
+model = DEAL(epoch=350, pop_size=120, stats_mode='mode')
 
 problem_dict = {
     "obj_func": problem.evaluate,
@@ -16,6 +16,3 @@ problem_dict = {
 
 result = model.solve(problem_dict)
 print(result)
-
-# print(mode([p.target.fitness for p in model.history_best_pop], keepdims=True)[0])
-# print(mode([p.target.fitness for p in model.history_worst_pop], keepdims=True)[0])
