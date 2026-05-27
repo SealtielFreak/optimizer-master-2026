@@ -33,8 +33,8 @@ if __name__ == "__main__":
     suite = BenchmarkSuite(
         functions=FUNCTIONS,
         algorithms=ALGORITHMS,
-        epoch=750,
-        pop_size=120,
+        epoch=250,
+        pop_size=75,
         n_runs=3,
         n_workers=15,
     )

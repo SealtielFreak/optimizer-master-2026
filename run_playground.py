@@ -1,12 +1,11 @@
 from mealpy import FloatVar
 
-from collection.b2026.deal import DEAL
+from collection.b2026.deal import DELU
 from bench.func import get_default
 
-from scipy.stats import wilcoxon, norm, mode
 
 problem = get_default(0, ndim=50)
-model = DEAL(epoch=350, pop_size=120, stats_mode='mode')
+model = DELU(epoch=350, pop_size=120, stats_mode='mode')
 
 problem_dict = {
     "obj_func": problem.evaluate,
