@@ -21,14 +21,21 @@ class DEAL(ClassicOptimizer):
         super().__init__(**kwargs)
 
         self.historial_best_pop = []
-        self.w = 1
+        self.historial_worst_pop = []
+
+        self.b_stats = 1
+        self.w_stats = 1
+        self.p = 1
+
         self.epoch = self.validator.check_int("epoch", epoch, [1, 100000])
         self.pop_size = self.validator.check_int("pop_size", pop_size, [5, 10000])
         self.c1 = self.validator.check_float("c1", c1, (0, 5.0))
         self.c2 = self.validator.check_float("c2", c2, (0, 5.0))
-        self.set_parameters(["epoch", "pop_size", "c1", "c2", "w"])
+        self.set_parameters(["epoch", "pop_size", "c1", "c2"])
         self.sort_flag = False
         self.is_parallelizable = False
+
+        self.default_pop_size = self.pop_size
 
         self.v_max = 0
         self.v_min = 0
@@ -69,17 +76,37 @@ class DEAL(ClassicOptimizer):
 
         # Update weight after each move count  (weight down)
 
-        pos_new_solutions = []
 
-        if len(self.historial_best_pop) > 2:
-            self.w = wilcoxon([p.target.fitness for p in self.historial_best_pop]).pvalue
+        if len(self.historial_best_pop) > 1:
+            self.b_stats = wilcoxon([p.target.fitness for p in self.historial_best_pop]).pvalue
+
+        if len(self.historial_worst_pop) > 1:
+            self.w_stats = wilcoxon([p.target.fitness for p in self.historial_worst_pop]).pvalue
+
+        current_pop_len = len(self.pop)
+
+        if self.b_stats < 0.05 and current_pop_len > 3:
+            self.pop = self.get_sorted_population(self.pop)[::-1]
+            self.historial_worst_pop += [self.pop[0]]
+
+            self.pop.pop(0)
+            self.pop_size -= 1
+        elif current_pop_len < self.default_pop_size:
+            self.pop += [self.generate_agent()]
+            self.pop_size += 1
+
+        if self.b_stats < self.w_stats:
+            self.p *= 0.5
+        else:
+            self.p *= 1.5
+
+        pos_new_solutions = []
 
         for idx in range(0, self.pop_size):
             cognitive = self.c1 * self.generator.random(self.problem.n_dims) * (self.pop[idx].local_solution - self.pop[idx].solution)
-
             social = self.c2 * self.generator.random(self.problem.n_dims) * (self.g_best.solution - self.pop[idx].solution)
 
-            self.pop[idx].velocity = self.w * self.pop[idx].velocity + cognitive + social
+            self.pop[idx].velocity = (self.p * self.pop[idx].velocity) + cognitive + social
 
             # pos_new = self.pop[idx].solution + self.pop[idx].velocity
             pos_new = self.pop[idx].solution + self.pop[idx].velocity
