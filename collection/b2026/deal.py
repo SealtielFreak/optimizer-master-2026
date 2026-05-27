@@ -10,7 +10,7 @@ from scipy.stats import wilcoxon
 
 
 class DEAL(ClassicOptimizer):
-    def __init__(self, epoch: int = 10000, pop_size: int = 100, c1: float = 2.05, c2: float = 2.05, minimum_pop: int = 4, wf: float = 0.1,
+    def __init__(self, epoch: int = 10000, pop_size: int = 100, minimum_pop: int = 4, wf: float = 0.1,
                  **kwargs: object) -> None:
         """
         Args:
@@ -32,12 +32,9 @@ class DEAL(ClassicOptimizer):
         self.minimum_pop = self.validator.check_int("minimum_pop", minimum_pop, [4, 100000])
         self.epoch = self.validator.check_int("epoch", epoch, [1, 100000])
         self.pop_size = self.validator.check_int("pop_size", pop_size, [5, 10000])
-        self.c1 = self.validator.check_float("c1", c1, (0, 5.0))
-        self.c2 = self.validator.check_float("c2", c2, (0, 5.0))
-
         self.wf = self.validator.check_float("wf", wf, (-3.0, 3.0))
 
-        self.set_parameters(["epoch", "pop_size", "c1", "c2"])
+        self.set_parameters(["epoch", "pop_size", "wf", "minimum_pop"])
         self.sort_flag = False
         self.is_parallelizable = False
 
@@ -97,21 +94,13 @@ class DEAL(ClassicOptimizer):
             self.pop += [self.generate_agent()]
             self.pop_size += 1
 
-        if self.b_stats < self.w_stats:
-            self.p *= math.fabs(self.b_stats - self.w_stats)
-
-        print("W - Exploration" if self.w_stats > self.b_stats else "B - Explotation")
-        print(self.b_stats, self.w_stats, math.fabs(self.b_stats - self.w_stats), self.p)
+        diff = math.fabs(self.w_stats - self.b_stats)
+        self.p = 1 if diff == 0 else diff
 
         pos_new_solutions = []
 
         for idx in range(0, self.pop_size):
-            # cognitive = self.c1 * self.generator.random(self.problem.n_dims) * (self.pop[idx].local_solution - self.pop[idx].solution)
-            # social = self.c2 * self.generator.random(self.problem.n_dims) * (self.g_best.solution - self.pop[idx].solution)
-
-            self.pop[idx].velocity = (self.p * self.pop[idx].velocity) #  + cognitive + social
-
-            # pos_new = self.pop[idx].solution + self.pop[idx].velocity
+            self.pop[idx].velocity *= self.p
 
             idx_list = self.generator.choice(list(set(range(0, self.pop_size)) - {idx}), 3, replace=False)
             pos_new = (self.pop[idx_list[0]].solution + self.wf * (self.pop[idx_list[1]].solution - self.pop[idx_list[2]].solution)) + self.pop[idx].velocity
