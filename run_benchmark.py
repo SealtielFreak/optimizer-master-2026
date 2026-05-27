@@ -9,10 +9,10 @@ ALGORITHMS = [
     AlgorithmSpec(name="PSO", cls=PSO.OriginalPSO),
     # AlgorithmSpec(name="GWO", cls=GWO.OriginalGWO),
 
-    AlgorithmSpec(name="SHADE", cls=SHADE.OriginalSHADE),
-    AlgorithmSpec(name="LSHADE", cls=SHADE.L_SHADE),
-    AlgorithmSpec(name="JADE", cls=DE.JADE),
-    AlgorithmSpec(name="DE", cls=DE.OriginalDE),
+    # AlgorithmSpec(name="SHADE", cls=SHADE.OriginalSHADE),
+    # AlgorithmSpec(name="LSHADE", cls=SHADE.L_SHADE),
+    # AlgorithmSpec(name="JADE", cls=DE.JADE),
+    # AlgorithmSpec(name="DE", cls=DE.OriginalDE),
 
     AlgorithmSpec(name="EP", cls=EP.LevyEP),
 
