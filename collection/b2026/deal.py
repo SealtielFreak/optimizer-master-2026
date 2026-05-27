@@ -8,7 +8,7 @@ from scipy.stats import wilcoxon
 
 
 class DEAL(ClassicOptimizer):
-    def __init__(self, epoch: int = 10000, pop_size: int = 100, c1: float = 2.05, c2: float = 2.05,
+    def __init__(self, epoch: int = 10000, pop_size: int = 100, c1: float = 2.05, c2: float = 2.05, minimum_pop: int = 3,
                  **kwargs: object) -> None:
         """
         Args:
@@ -27,6 +27,7 @@ class DEAL(ClassicOptimizer):
         self.w_stats = 1
         self.p = 1
 
+        self.minimum_pop = self.validator.check_int("minimum_pop", minimum_pop, [1, 100000])
         self.epoch = self.validator.check_int("epoch", epoch, [1, 100000])
         self.pop_size = self.validator.check_int("pop_size", pop_size, [5, 10000])
         self.c1 = self.validator.check_float("c1", c1, (0, 5.0))
@@ -85,7 +86,7 @@ class DEAL(ClassicOptimizer):
 
         current_pop_len = len(self.pop)
 
-        if self.b_stats < 0.05 and current_pop_len > 3:
+        if self.b_stats < 0.05 and current_pop_len > self.minimum_pop:
             self.pop = self.get_sorted_population(self.pop)[::-1]
             self.history_worst_pop += [self.pop[0]]
 
@@ -96,9 +97,9 @@ class DEAL(ClassicOptimizer):
             self.pop_size += 1
 
         if self.b_stats < self.w_stats:
-            self.p *= 0.5
+            self.p *= self.b_stats
         else:
-            self.p *= 1.5
+            self.p *= self.w_stats
 
         pos_new_solutions = []
 
@@ -134,5 +135,5 @@ class DEAL(ClassicOptimizer):
                 )
 
         gbest = self.get_best_agent(self.pop, self.problem.minmax)
-        self.history_best_pop.append(gbest)
+        self.history_best_pop += [gbest]
         self.gbest = sorted(self.history_best_pop, key=lambda p: p.target.fitness)[0]
