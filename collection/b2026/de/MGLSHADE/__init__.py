@@ -13,6 +13,7 @@ _STATS_MODES = 'mode', 'sorted', 'median', 'mean'
 
 @dataclasses.dataclass
 class Layer:
+    """
     local_pop: list[Agent]
     dyn_pop_archive: list[Agent]
     dyn_miu_f: list[float]
@@ -23,10 +24,31 @@ class Layer:
 
     dyn_pop_size: int = 0
     k_counter: int = 0
+    """
+
+    def __init__(
+        self,
+        local_pop: list[Agent],
+        dyn_pop_archive: list[Agent],
+        dyn_miu_f: list[float],
+        dyn_miu_cr: list[float],
+        g_best: Agent,
+        max_pop_size: int,
+        dyn_pop_size: int = 0,
+        k_counter: int = 0,
+    ):
+        self.local_pop = local_pop
+        self.dyn_pop_archive = dyn_pop_archive
+        self.dyn_miu_f = dyn_miu_f
+        self.dyn_miu_cr = dyn_miu_cr
+        self.g_best = g_best
+        self.dyn_pop_size = dyn_pop_size
+        self.k_counter = k_counter
+        self.__max_pop_size = max_pop_size
 
     @property
     def pop_size(self):
-        return self._max_pop_size
+        return self.__max_pop_size
 
     @property
     def n_min(self):
@@ -36,9 +58,10 @@ class Layer:
         return self.g_best.target.fitness
 
 
-class DEAL(ClassicOptimizer):
+class MG_L_SHADE(ClassicOptimizer):
     """
-        Differential Evolution Adaptative-Layers: Based in L-SHADED and RPSO
+        MG-L-SHADE: Multi-Group L-SHADE
+
     """
 
     def __init__(
@@ -128,8 +151,7 @@ class DEAL(ClassicOptimizer):
                 dyn_miu_cr=self.miu_cr * np.ones(max_pop_size),
                 g_best=g_best,
                 dyn_pop_size=max_pop_size,
-
-                _max_pop_size=max_pop_size
+                max_pop_size=max_pop_size
             )
 
             self.all_layers.append(layer)
