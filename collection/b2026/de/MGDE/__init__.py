@@ -11,7 +11,6 @@ from utils.sorted import sorted_population
 _STATS_MODES = 'mode', 'sorted', 'median', 'mean'
 
 
-@dataclasses.dataclass
 class LayerGroup:
     def __init__(
             self,
@@ -164,6 +163,8 @@ class MGSHADE(ClassicOptimizer):
         def evolve_layer(n: int, epoch: int, layer: LayerGroup):
             local_pop = layer.local_pop
 
+            pop = []
+
             pop_old = [agent.copy() for agent in local_pop]
             pop_sorted = sorted_population(local_pop, self.problem.minmax)
 
@@ -175,7 +176,6 @@ class MGSHADE(ClassicOptimizer):
             mf_n = np.ones(len(local_pop))
             mcr_n = np.ones(len(local_pop))
 
-            pop = []
 
             for idx in range(0, len(local_pop)):
                 f, cr = generate_cauchy_memory(
@@ -203,6 +203,7 @@ class MGSHADE(ClassicOptimizer):
                     (local_pop[idx].solution + f * (g_best.solution - local_pop[idx].solution) + f * (
                             x_r1.solution - x_r2.solution))
                 )
+
                 pos_new = np.where(self.generator.random(self.problem.n_dims) < cr, x_new, local_pop[idx].solution)
                 j_rand = self.generator.integers(0, self.problem.n_dims)
 
@@ -291,6 +292,8 @@ class MGSHADE(ClassicOptimizer):
 
             if self.compare_target(target, agent.local_target, self.problem.minmax):
                 agent.update(local_solution=pos_new.copy(), local_target=target.copy())
+
+
 
         self.layer_all_g_best = []
 
