@@ -54,9 +54,6 @@ class Layer:
     def n_min(self):
         return math.ceil(self.pop_size / 5)
 
-    def __float__(self):
-        return self.g_best.target.fitness
-
 
 class MG_L_SHADE(ClassicOptimizer):
     """
