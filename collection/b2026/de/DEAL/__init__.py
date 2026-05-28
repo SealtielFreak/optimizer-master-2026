@@ -38,7 +38,7 @@ class Layer:
 
 class DEAL(ClassicOptimizer):
     """
-        Differential Evolution Adaptative-Layers: Based in DE, JADE, L-SHADED
+        Differential Evolution Adaptative-Layers: Based in L-SHADED and RPSO
     """
 
     def __init__(
@@ -66,7 +66,7 @@ class DEAL(ClassicOptimizer):
         self.cr = self.validator.check_float("cr", cr, (0, 1.0))
         self.ap = self.validator.check_float("ap", ap, (0, 1.0))
         self.minimum_pop = self.validator.check_int("minimum_pop", minimum_pop, [4, 100000])
-        self.n_layers = self.validator.check_int("n_layers", n_layers, [1, 100000])
+        self.n_layers = self.validator.check_int("n_layers", n_layers, [2, 100000])
         self.stats_mode = self.validator.check_str("stats_mode", stats_mode, _STATS_MODES)
 
         self.c1 = self.validator.check_float("c1", c1, (0, 5.0))
@@ -276,23 +276,25 @@ class DEAL(ClassicOptimizer):
             self.all_layers, key=lambda l: l.g_best.target.fitness
         )
 
+        g_best = self.all_layers[1].g_best
+
         for idx, layer in enumerate(self.all_layers[1:]):
-            g_best = layer.g_best
+            agent = layer.g_best
 
-            cognitive = self.c1 * self.generator.random(self.problem.n_dims) * (g_best.local_solution - g_best.solution)
-            social = self.c2 * self.generator.random(self.problem.n_dims) * (g_best.solution - g_best.solution)
+            cognitive = self.c1 * self.generator.random(self.problem.n_dims) * (agent.local_solution - agent.solution)
+            social = self.c2 * self.generator.random(self.problem.n_dims) * (g_best.solution - agent.solution)
 
-            g_best.velocity = self.w * g_best.velocity - cognitive - social
+            agent.velocity = self.w * agent.velocity - cognitive - social
 
-            pos_new = g_best.solution + g_best.velocity
+            pos_new = agent.solution + agent.velocity
             pos_new = self.correct_solution(pos_new)
             target = self.get_target(pos_new)
 
-            if self.compare_target(target, g_best.target, self.problem.minmax):
-                g_best.update(solution=pos_new.copy(), target=target.copy())
+            if self.compare_target(target, agent.target, self.problem.minmax):
+                agent.update(solution=pos_new.copy(), target=target.copy())
 
-            if self.compare_target(target, g_best.local_target, self.problem.minmax):
-                g_best.update(local_solution=pos_new.copy(), local_target=target.copy())
+            if self.compare_target(target, agent.local_target, self.problem.minmax):
+                agent.update(local_solution=pos_new.copy(), local_target=target.copy())
 
         self.layer_all_g_best = []
 
