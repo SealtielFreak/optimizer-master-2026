@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils import lehmer_mean
+from utils.stats import lehmer_mean
 
 
 def update_history(dyn_miu_cr, dyn_miu_f, ap, list_cr, list_f):

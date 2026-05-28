@@ -1,10 +1,10 @@
 import numpy as np
 from mealpy.optimizer.classic import ClassicOptimizer
 from mealpy.utils.agent import Agent
-from scipy.stats import wilcoxon, cauchy
+from scipy.stats import wilcoxon
 
-from utils import stats_solution
 from utils.mutation import update_history
+from utils.stats import stats_solution, generate_cauchy
 
 _STATS_MODES = 'mode', 'sorted', 'median', 'mean'
 
@@ -125,18 +125,9 @@ class DEAC(ClassicOptimizer):
 
         pos_new_solutions = []
         for idx in range(0, self.pop_size):
-            cr = self.generator.normal(self.dyn_miu_cr, 0.1)
-            cr = np.clip(cr, 0, 1)
-
-            while True:
-                f = cauchy.rvs(self.dyn_miu_f, 0.1)
-
-                if f < 0:
-                    continue
-                elif f > 1:
-                    f = 1
-
-                break
+            f, cr = generate_cauchy(
+                self.generator, self.dyn_miu_cr, self.dyn_miu_f
+            )
 
             temp_f += [f]
             temp_cr += [cr]

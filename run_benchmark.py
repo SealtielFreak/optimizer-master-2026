@@ -3,7 +3,7 @@ from mealpy import PSO, DE, GWO, WOA, GA, SHADE, DE, EP
 from bench import AlgorithmSpec, BenchmarkSuite, ClassFunctionSpec
 from bench.func import get_all_default_problems
 
-from collection.b2026.deal import DEAL
+from collection.b2026.de import DEAL
 
 ALGORITHMS = [
     AlgorithmSpec(name="PSO", cls=PSO.OriginalPSO),
