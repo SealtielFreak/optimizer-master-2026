@@ -12,31 +12,19 @@ _STATS_MODES = 'mode', 'sorted', 'median', 'mean'
 
 
 @dataclasses.dataclass
-class Layer:
-    """
-    local_pop: list[Agent]
-    dyn_pop_archive: list[Agent]
-    dyn_miu_f: list[float]
-    dyn_miu_cr: list[float]
-    g_best: Agent
-
-    _max_pop_size: int
-
-    dyn_pop_size: int = 0
-    k_counter: int = 0
-    """
-
+class LayerGroup:
     def __init__(
-        self,
-        local_pop: list[Agent],
-        dyn_pop_archive: list[Agent],
-        dyn_miu_f: list[float],
-        dyn_miu_cr: list[float],
-        g_best: Agent,
-        max_pop_size: int,
-        dyn_pop_size: int = 0,
-        k_counter: int = 0,
+            self,
+            local_pop: list[Agent],
+            dyn_pop_archive: list[Agent],
+            dyn_miu_f: list[float],
+            dyn_miu_cr: list[float],
+            g_best: Agent,
+            max_pop_size: int,
+            dyn_pop_size: int = 0,
+            k_counter: int = 0,
     ):
+        self.p = np.ones(max_pop_size)
         self.local_pop = local_pop
         self.dyn_pop_archive = dyn_pop_archive
         self.dyn_miu_f = dyn_miu_f
@@ -55,10 +43,9 @@ class Layer:
         return math.ceil(self.pop_size / 5)
 
 
-class MG_L_SHADE(ClassicOptimizer):
+class MGSHADE(ClassicOptimizer):
     """
         MG-L-SHADE: Multi-Group L-SHADE
-
     """
 
     def __init__(
@@ -112,12 +99,6 @@ class MG_L_SHADE(ClassicOptimizer):
         self.all_layers = []
         self.layers_size = 0
 
-    def weighted_lehmer_mean(self, list_objects, list_weights):
-        up = np.sum(list_weights * list_objects ** 2)
-        down = np.sum(list_weights * list_objects)
-
-        return up / down if down != 0 else 0.5
-
     def initialize_variables(self):
         self.layers_size = self.pop_size // self.n_layers
 
@@ -141,7 +122,7 @@ class MG_L_SHADE(ClassicOptimizer):
             max_pop_size = len(local_pop)
             g_best = local_pop[0]
 
-            layer = Layer(
+            layer = LayerGroup(
                 local_pop=local_pop,
                 dyn_pop_archive=[],
                 dyn_miu_f=self.miu_f * np.ones(max_pop_size),
@@ -153,12 +134,6 @@ class MG_L_SHADE(ClassicOptimizer):
 
             self.all_layers.append(layer)
 
-    def mutation(self, current_pos, new_pos):
-        condition = self.generator.random(self.problem.n_dims) < self.cr
-        pos_new = np.where(condition, new_pos, current_pos)
-
-        return self.correct_solution(pos_new)
-
     def generate_empty_agent(self, solution: np.ndarray = None) -> Agent:
         if solution is None:
             solution = self.problem.generate_solution(encoded=True)
@@ -166,7 +141,11 @@ class MG_L_SHADE(ClassicOptimizer):
         local_pos = solution.copy()
         velocity = self.generator.uniform(self.v_min, self.v_max)
 
-        return Agent(solution=solution, velocity=velocity, local_solution=local_pos)
+        return Agent(
+            solution=solution,
+            velocity=velocity,
+            local_solution=local_pos
+        )
 
     def generate_agent(self, solution: np.ndarray = None) -> Agent:
         agent = self.generate_empty_agent(solution)
@@ -182,42 +161,38 @@ class MG_L_SHADE(ClassicOptimizer):
         return np.where(condition, solution, pos_rand)
 
     def evolve(self, epoch: int) -> None:
-        def evolve_layer(n: int, epoch: int, layer: Layer):
+        def evolve_layer(n: int, epoch: int, layer: LayerGroup):
             local_pop = layer.local_pop
 
             pop_old = [agent.copy() for agent in local_pop]
             pop_sorted = sorted_population(local_pop, self.problem.minmax)
 
-            list_f = []
-            list_cr = []
-            list_f_index = []
-            list_cr_index = []
+            mf = []
+            mcr = []
+            mf_i = []
+            mcr_i = []
 
-            list_f_new = np.ones(len(local_pop))
-            list_cr_new = np.ones(len(local_pop))
+            mf_n = np.ones(len(local_pop))
+            mcr_n = np.ones(len(local_pop))
 
             pop = []
 
             for idx in range(0, len(local_pop)):
-                idx_rand = self.generator.integers(0, layer.pop_size)
-                cr = self.generator.normal(layer.dyn_miu_cr[idx_rand], 0.1)
-                cr = np.clip(cr, 0, 1)
-                while True:
-                    f = cauchy.rvs(layer.dyn_miu_f[idx_rand], 0.1)
-                    if f < 0:
-                        continue
-                    elif f > 1:
-                        f = 1
-                    break
+                f, cr = generate_cauchy_memory(
+                    self.generator,
+                    layer.pop_size,
+                    layer.dyn_miu_f,
+                    layer.dyn_miu_cr,
+                )
 
-                list_cr_new[idx] = cr
-                list_f_new[idx] = f
+                mcr_n[idx] = cr
+                mf_n[idx] = f
 
                 r1_idx = self.generator.choice(list(set(range(0, len(local_pop))) - {idx}))
                 x_r1 = local_pop[r1_idx]
 
-                p = self.generator.uniform(0.15, 0.2)
-                top = int(np.ceil(layer.dyn_pop_size * p))
+                layer.p[idx] = self.generator.uniform(0.15, 0.2)
+                top = int(np.ceil(layer.dyn_pop_size * layer.p[idx]))
                 g_best = pop_sorted[self.generator.integers(0, top)]
 
                 new_pop = self.pop + layer.dyn_pop_archive
@@ -240,11 +215,13 @@ class MG_L_SHADE(ClassicOptimizer):
 
             for idx in range(0, len(local_pop)):
                 if self.compare_target(pop[idx].target, local_pop[idx].target, self.problem.minmax):
-                    list_cr.append(list_cr_new[idx])
-                    list_f.append(list_f_new[idx])
-                    list_f_index.append(idx)
-                    list_cr_index.append(idx)
+                    mcr.append(mcr_n[idx])
+                    mf.append(mf_n[idx])
+                    mf_i.append(idx)
+                    mcr_i.append(idx)
+
                     local_pop[idx] = pop[idx].copy()
+
                     layer.dyn_pop_archive.append(self.pop[idx].copy())
 
             temp = len(layer.dyn_pop_archive) - self.pop_size
@@ -258,22 +235,22 @@ class MG_L_SHADE(ClassicOptimizer):
 
                 layer.dyn_pop_archive = archive_pop_new
 
-            if len(list_f) != 0 and len(list_cr) != 0:
-                list_fit_old = np.ones(len(list_cr_index))
-                list_fit_new = np.ones(len(list_cr_index))
+            if len(mf) != 0 and len(mcr) != 0:
+                fit_old = np.ones(len(mcr_i))
+                fit_new = np.ones(len(mcr_i))
                 idx_increase = 0
 
                 for idx in range(0, layer.dyn_pop_size):
-                    if idx in list_cr_index:
-                        list_fit_old[idx_increase] = pop_old[idx].target.fitness
-                        list_fit_new[idx_increase] = local_pop[idx].target.fitness
+                    if idx in mcr_i:
+                        fit_old[idx_increase] = pop_old[idx].target.fitness
+                        fit_new[idx_increase] = local_pop[idx].target.fitness
                         idx_increase += 1
 
-                total_fit = np.sum(np.abs(list_fit_new - list_fit_old))
-                list_weights = 0 if total_fit == 0 else np.abs(list_fit_new - list_fit_old) / total_fit
+                total_fit = np.sum(np.abs(fit_new - fit_old))
+                list_weights = 0 if total_fit == 0 else np.abs(fit_new - fit_old) / total_fit
 
-                layer.dyn_miu_cr[layer.k_counter] = np.sum(list_weights * np.array(list_cr))
-                layer.dyn_miu_f[layer.k_counter] = self.weighted_lehmer_mean(np.array(list_f), list_weights)
+                layer.dyn_miu_cr[layer.k_counter] = np.sum(list_weights * np.array(mcr))
+                layer.dyn_miu_f[layer.k_counter] = weighted_lehmer_mean(np.array(mf), list_weights)
 
                 layer.k_counter += 1
 
@@ -330,3 +307,35 @@ class MG_L_SHADE(ClassicOptimizer):
         self.all_global_history_best_pop = sorted_population(self.all_global_history_best_pop, self.problem.minmax)
 
         self.g_best = self.all_global_history_best_pop[0].copy()
+
+
+def weighted_lehmer_mean(x, weights):
+    up = np.sum(weights * x ** 2)
+    down = np.sum(weights * x)
+
+    return up / down if down != 0 else 0.5
+
+
+def generate_cauchy_memory(
+        generator,
+        size,
+        dyn_miu_f,
+        dyn_miu_cr,
+):
+    idx = generator.integers(0, size)
+    cr = generator.normal(dyn_miu_cr[idx], 0.1)
+    cr = np.clip(cr, 0, 1)
+
+    f = 0
+
+    while True:
+        f = cauchy.rvs(dyn_miu_f[idx], 0.1)
+
+        if f < 0:
+            continue
+        elif f > 1:
+            f = 1
+
+        break
+
+    return f, cr

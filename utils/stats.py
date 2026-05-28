@@ -29,7 +29,6 @@ def generate_cauchy(
     cr = generator.normal(dyn_miu_cr, 0.1)
     cr = np.clip(cr, 0, 1)
 
-
     while True:
         f = cauchy.rvs(dyn_miu_f, 0.1) if idx is None else cauchy.rvs(dyn_miu_f[idx], 0.1)
 
